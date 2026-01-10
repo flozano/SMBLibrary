@@ -1,23 +1,31 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <PackageId>Flozano.SMBLibrary</PackageId>
     <AssemblyName>SMBLibrary</AssemblyName>
-    <Version>1.5.5</Version>
+    <Version>1.5.5.2</Version>
     <NoWarn>1573;1591</NoWarn>
     <RootNamespace>SMBLibrary</RootNamespace>
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-    <Authors>Tal Aloni</Authors>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Authors>Tal Aloni, flozano</Authors>
     <Copyright>Copyright © Tal Aloni 2014-2025</Copyright>
-    <PackageDescription>SMBLibrary is an open-source C# SMB 1.0/CIFS, SMB 2.0, SMB 2.1 and SMB 3.0 server and client implementation</PackageDescription>
+    <PackageDescription>SMBLibrary fork with Socket overload support for SOCKS5 proxy connections. Based on the open-source C# SMB 1.0/CIFS, SMB 2.0, SMB 2.1 and SMB 3.0 server and client implementation.</PackageDescription>
     <PackageLicenseExpression>LGPL-3.0-or-later</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/TalAloni/SMBLibrary</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/TalAloni/SMBLibrary</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/flozano/SMBLibrary</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/flozano/SMBLibrary</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>smb;cifs;smb2;smb3;socks5;proxy</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Utilities\Utilities.csproj" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
