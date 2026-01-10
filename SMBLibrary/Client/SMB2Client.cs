@@ -158,6 +158,40 @@ namespace SMBLibrary.Client
             return m_isConnected;
         }
 
+        /// <summary>
+        /// Connect using a pre-connected socket (e.g., through a SOCKS5 proxy).
+        /// Only DirectTCPTransport is supported with pre-connected sockets.
+        /// </summary>
+        /// <param name="connectedSocket">A socket already connected to the SMB server</param>
+        /// <param name="serverName">Server name for authentication (optional)</param>
+        public bool Connect(Socket connectedSocket, string serverName = null)
+        {
+            if (connectedSocket == null)
+                throw new ArgumentNullException(nameof(connectedSocket));
+            if (!connectedSocket.Connected)
+                throw new ArgumentException("Socket must be connected", nameof(connectedSocket));
+
+            m_serverName = serverName ?? connectedSocket.RemoteEndPoint?.ToString() ?? "unknown";
+            m_transport = SMBTransportType.DirectTCPTransport;
+
+            if (!m_isConnected)
+            {
+                m_clientSocket = connectedSocket;
+                InitializeConnectionState();
+
+                bool supportsDialect = NegotiateDialect();
+                if (!supportsDialect)
+                {
+                    m_clientSocket.Close();
+                }
+                else
+                {
+                    m_isConnected = true;
+                }
+            }
+            return m_isConnected;
+        }
+
         protected virtual string GetNetBiosServerName(IPAddress serverAddress)
         {
             NameServiceClient nameServiceClient = new NameServiceClient(serverAddress);
@@ -177,10 +211,15 @@ namespace SMBLibrary.Client
                 return false;
             }
 
+            InitializeConnectionState();
+            return true;
+        }
+
+        private void InitializeConnectionState()
+        {
             m_connectionState = new ConnectionState(m_clientSocket);
             NBTConnectionReceiveBuffer buffer = m_connectionState.ReceiveBuffer;
             m_clientSocket.BeginReceive(buffer.Buffer, buffer.WriteOffset, buffer.AvailableLength, SocketFlags.None, new AsyncCallback(OnClientSocketReceive), m_connectionState);
-            return true;
         }
 
         public void Disconnect()
