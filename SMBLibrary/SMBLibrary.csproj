@@ -3,7 +3,7 @@
   <PropertyGroup>
     <PackageId>Flozano.SMBLibrary</PackageId>
     <AssemblyName>SMBLibrary</AssemblyName>
-    <Version>1.5.5.2</Version>
+    <Version>1.5.5.3</Version>
     <NoWarn>1573;1591</NoWarn>
     <RootNamespace>SMBLibrary</RootNamespace>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -25,6 +25,25 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.40" PrivateAssets="All" />
+  </ItemGroup>
+
+  <Target Name="ILRepack" AfterTargets="Build">
+    <PropertyGroup>
+      <WorkingDirectory>$(MSBuildThisFileDirectory)$(OutputPath)</WorkingDirectory>
+    </PropertyGroup>
+    <ILRepack
+        OutputType="Library"
+        MainAssembly="$(AssemblyName).dll"
+        OutputAssembly="$(AssemblyName).dll"
+        InputAssemblies="Utilities.dll"
+        WorkingDirectory="$(WorkingDirectory)" />
+    <!-- Remove Utilities.dll after merging -->
+    <Delete Files="$(WorkingDirectory)Utilities.dll" />
+    <Delete Files="$(WorkingDirectory)Utilities.pdb" Condition="Exists('$(WorkingDirectory)Utilities.pdb')" />
+  </Target>
+
+  <ItemGroup>
     <None Include="..\README.md" Pack="true" PackagePath="" />
   </ItemGroup>
 
@@ -39,9 +58,5 @@
       <_Parameter1>SMBLibrary.Tests</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>
-
-<!--  <Target Name="ILRepack" Condition="'$(Configuration)' == 'Release'" AfterTargets="AfterBuild">-->
-<!--    <Exec Command="&quot;$(ProgramW6432)\ILRepack\ILRepack.exe&quot; /out=&quot;$(OutputPath)\SMBLibrary.dll&quot; &quot;$(OutputPath)\SMBLibrary.dll&quot; &quot;$(OutputPath)\Utilities.dll&quot;" />-->
-<!--  </Target>-->
 
 </Project>
