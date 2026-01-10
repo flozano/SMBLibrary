@@ -1,4 +1,4 @@
-/* Copyright (C) 2014-2024 Tal Aloni <tal.aloni.il@gmail.com>. All rights reserved.
+/* Copyright (C) 2014-2025 Tal Aloni <tal.aloni.il@gmail.com>. All rights reserved.
  * 
  * You can redistribute this program and/or modify it under the terms of
  * the GNU Lesser Public License as published by the Free Software Foundation,
@@ -57,8 +57,13 @@ namespace SMBLibrary.Client
         private byte[] m_securityBlob;
         private byte[] m_sessionKey;
 
-        public SMB1Client()
+        public SMB1Client() : this(DefaultResponseTimeoutInMilliseconds)
         {
+        }
+
+        public SMB1Client(int responseTimeoutInMilliseconds)
+        {
+            m_responseTimeoutInMilliseconds = responseTimeoutInMilliseconds;
         }
 
         public bool Connect(string serverName, SMBTransportType transport)
@@ -79,22 +84,16 @@ namespace SMBLibrary.Client
 
         public bool Connect(IPAddress serverAddress, SMBTransportType transport, bool forceExtendedSecurity)
         {
-            return Connect(serverAddress, transport, forceExtendedSecurity, DefaultResponseTimeoutInMilliseconds);
-        }
-
-        public bool Connect(IPAddress serverAddress, SMBTransportType transport, bool forceExtendedSecurity, int responseTimeoutInMilliseconds)
-        {
             int port = (transport == SMBTransportType.DirectTCPTransport ? DirectTCPPort : NetBiosOverTCPPort);
-            return Connect(serverAddress, transport, port, forceExtendedSecurity, responseTimeoutInMilliseconds);
+            return Connect(serverAddress, transport, port, forceExtendedSecurity);
         }
 
-        protected internal bool Connect(IPAddress serverAddress, SMBTransportType transport, int port, bool forceExtendedSecurity, int responseTimeoutInMilliseconds)
+        protected internal bool Connect(IPAddress serverAddress, SMBTransportType transport, int port, bool forceExtendedSecurity)
         {
             m_transport = transport;
             if (!m_isConnected)
             {
                 m_forceExtendedSecurity = forceExtendedSecurity;
-                m_responseTimeoutInMilliseconds = responseTimeoutInMilliseconds;
                 if (!ConnectSocket(serverAddress, port))
                 {
                     return false;
@@ -116,8 +115,7 @@ namespace SMBLibrary.Client
                             return false;
                         }
 
-                        NameServiceClient nameServiceClient = new NameServiceClient(serverAddress);
-                        string serverName = nameServiceClient.GetServerName();
+                        string serverName = GetNetBiosServerName(serverAddress);
                         if (serverName == null)
                         {
                             return false;
@@ -145,6 +143,12 @@ namespace SMBLibrary.Client
                 }
             }
             return m_isConnected;
+        }
+
+        protected virtual string GetNetBiosServerName(IPAddress serverAddress)
+        {
+            NameServiceClient nameServiceClient = new NameServiceClient(serverAddress);
+            return nameServiceClient.GetServerName();
         }
 
         private bool ConnectSocket(IPAddress serverAddress, int port)
@@ -424,6 +428,22 @@ namespace SMBLibrary.Client
                 status = NTStatus.STATUS_INVALID_SMB;
             }
             return null;
+        }
+
+        public NTStatus Echo()
+        {
+            EchoRequest request = new EchoRequest();
+            request.EchoCount = 1;
+            TrySendMessage(request);
+            SMB1Message reply = WaitForMessage(CommandName.SMB_COM_ECHO);
+            if (reply != null)
+            {
+                return reply.Header.Status;
+            }
+            else
+            {
+                return NTStatus.STATUS_INVALID_SMB;
+            }
         }
 
         private void OnClientSocketReceive(IAsyncResult ar)
