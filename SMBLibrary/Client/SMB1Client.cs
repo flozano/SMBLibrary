@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Cryptography;
 using System.Threading;
 using SMBLibrary.Authentication.NTLM;
 using SMBLibrary.Client.Authentication;
@@ -271,6 +272,7 @@ namespace SMBLibrary.Client
                 request.PrimaryDomain = domainName;
                 byte[] clientChallenge = new byte[8];
                 new Random().NextBytes(clientChallenge);
+                byte[] proofStr = null;
                 if (authenticationMethod == AuthenticationMethod.NTLMv1)
                 {
                     request.OEMPassword = NTLMCryptography.ComputeLMv1Response(m_serverChallenge, password);
@@ -288,9 +290,9 @@ namespace SMBLibrary.Client
                     // https://msdn.microsoft.com/en-us/library/cc236700.aspx
                     request.OEMPassword = NTLMCryptography.ComputeLMv2Response(m_serverChallenge, clientChallenge, password, userName, domainName);
                     NTLMv2ClientChallenge clientChallengeStructure = new NTLMv2ClientChallenge(DateTime.UtcNow, clientChallenge, AVPairUtils.GetAVPairSequence(domainName, Environment.MachineName));
-                    byte[] temp = clientChallengeStructure.GetBytesPadded();
-                    byte[] proofStr = NTLMCryptography.ComputeNTLMv2Proof(m_serverChallenge, temp, password, userName, domainName);
-                    request.UnicodePassword = ByteUtils.Concatenate(proofStr, temp);
+                    byte[] clientChallengeStructurePadded = clientChallengeStructure.GetBytesPadded();
+                    proofStr = NTLMCryptography.ComputeNTLMv2Proof(m_serverChallenge, clientChallengeStructurePadded, password, userName, domainName);
+                    request.UnicodePassword = ByteUtils.Concatenate(proofStr, clientChallengeStructurePadded);
                 }
 
                 TrySendMessage(request);
@@ -302,6 +304,9 @@ namespace SMBLibrary.Client
                     if (m_isLoggedIn)
                     {
                         m_userID = reply.Header.UID;
+                        m_sessionKey = (authenticationMethod == AuthenticationMethod.NTLMv1) ?
+                            new MD4().GetByteHashFromBytes(NTLMCryptography.NTOWFv1(password)) :
+                            new HMACMD5(NTLMCryptography.NTOWFv2(password, userName, domainName)).ComputeHash(proofStr);
                     }
                     return reply.Header.Status;
                 }
@@ -344,7 +349,11 @@ namespace SMBLibrary.Client
                     reply = WaitForMessage(CommandName.SMB_COM_SESSION_SETUP_ANDX);
                 }
 
-                if (reply != null && reply.Commands[0] is SessionSetupAndXResponseExtended)
+                if (reply != null && reply.Commands[0] is ErrorResponse)
+                {
+                    return reply.Header.Status;
+                }
+                else if (reply != null && reply.Commands[0] is SessionSetupAndXResponseExtended)
                 {
                     m_isLoggedIn = (reply.Header.Status == NTStatus.STATUS_SUCCESS);
                     if (m_isLoggedIn)

@@ -78,7 +78,7 @@ namespace SMBLibrary.Authentication.NTLM
             DES des = DES.Create();
             des.Mode = mode;
             ICryptoTransform transform;
-            if (DES.IsWeakKey(rgbKey) || DES.IsSemiWeakKey(rgbKey))            
+            if (DES.IsWeakKey(rgbKey) || DES.IsSemiWeakKey(rgbKey))
             {
 #if NETSTANDARD2_0
                 MethodInfo getTransformCoreMethodInfo = des.GetType().GetMethod("CreateTransformCore", BindingFlags.NonPublic | BindingFlags.Static);
@@ -239,7 +239,7 @@ namespace SMBLibrary.Authentication.NTLM
                 }
                 else
                 {
-                    if ((negotiateFlags & NegotiateFlags.RequestLMSessionKey) > 0)
+                    if ((negotiateFlags & NegotiateFlags.RequestNonNTSessionKey) > 0)
                     {
                         byte[] keyExchangeKey = ByteUtils.Concatenate(ByteReader.ReadBytes(lmowf, 0, 8), new byte[8]);
                         return keyExchangeKey;
