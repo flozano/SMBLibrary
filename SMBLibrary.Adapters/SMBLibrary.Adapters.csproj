@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <AssemblyName>SMBLibrary.Adapters</AssemblyName>
-    <Version>1.5.7</Version>
+    <Version>101.5.6</Version>
     <NoWarn>1573;1591</NoWarn>
     <RootNamespace>SMBLibrary.Adapters</RootNamespace>
     <Authors>Tal Aloni</Authors>
