@@ -29,6 +29,9 @@ jobs:
       - name: Build
         run: dotnet build SMBLibrary/SMBLibrary.csproj -c Release --no-restore
 
+      - name: Test
+        run: dotnet test SMBLibrary.Tests/SMBLibrary.Tests.csproj --no-restore
+
       - name: Pack
         run: dotnet pack SMBLibrary/SMBLibrary.csproj -c Release -o ./artifacts --no-build
 
