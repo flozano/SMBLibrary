@@ -5,6 +5,7 @@
     <Copyright>Copyright © Tal Aloni 2014-2026</Copyright>
     <AssemblyName>SMBServer</AssemblyName>
     <Version>101.5.6</Version>
+    <Version>1.5.7</Version>
     <RootNamespace>SMBServer</RootNamespace>
     <UseWindowsForms>true</UseWindowsForms>
     <TargetFramework>net10.0</TargetFramework>

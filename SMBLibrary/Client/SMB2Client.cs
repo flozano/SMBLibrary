@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2025 Tal Aloni <tal.aloni.il@gmail.com>. All rights reserved.
+/* Copyright (C) 2017-2026 Tal Aloni <tal.aloni.il@gmail.com>. All rights reserved.
  * 
  * You can redistribute this program and/or modify it under the terms of
  * the GNU Lesser Public License as published by the Free Software Foundation,
@@ -416,9 +416,9 @@ namespace SMBLibrary.Client
             if (response != null)
             {
                 status = response.Header.Status;
-                if (response.Header.Status == NTStatus.STATUS_SUCCESS && response is TreeConnectResponse)
+                if (response.Header.Status == NTStatus.STATUS_SUCCESS && response is TreeConnectResponse treeConnectResponse)
                 {
-                    bool encryptShareData = (((TreeConnectResponse)response).ShareFlags & ShareFlags.EncryptData) > 0;
+                    bool encryptShareData = (treeConnectResponse.ShareFlags & ShareFlags.EncryptData) > 0;
                     return new SMB2FileStore(this, response.Header.TreeID, m_encryptSessionData || encryptShareData);
                 }
             }
@@ -482,7 +482,7 @@ namespace SMBLibrary.Client
                     m_isConnected = false;
                     state.ReceiveBuffer.Dispose();
                 }
-                else
+                else if (clientSocket.Connected)
                 {
                     NBTConnectionReceiveBuffer buffer = state.ReceiveBuffer;
                     buffer.SetNumberOfBytesReceived(numberOfBytesReceived);
@@ -597,6 +597,16 @@ namespace SMBLibrary.Client
                 // Otherwise, the response MUST be discarded as invalid.
                 if (command.Header.MessageID != 0xFFFFFFFFFFFFFFFF || command.Header.Command == SMB2CommandName.OplockBreak)
                 {
+                    bool isInterimResponse = ((command.Header.Flags & SMB2PacketHeaderFlags.AsyncCommand) != 0) && command.Header.Status == NTStatus.STATUS_PENDING;
+                    bool shouldBeSigned = m_isLoggedIn && m_signingRequired && !m_encryptSessionData && !isInterimResponse;
+
+                    // [MS-SMB2] 3.2.5.1.3 If signature verification fails, the client MUST discard the received message. The client MAY also choose to disconnect the connection
+                    if (shouldBeSigned && !SMB2Cryptography.VerifySignature(messageBytes, m_dialect, m_signingKey))
+                    {
+                        Log("Invalid SMB2 response signature");
+                        return;
+                    }
+
                     lock (m_incomingQueueLock)
                     {
                         m_incomingQueue.Add(command);
