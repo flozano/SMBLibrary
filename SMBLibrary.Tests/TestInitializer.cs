@@ -9,7 +9,6 @@ namespace SMBLibrary.Tests
         [AssemblyInitialize]
         public static void Initialize(TestContext context)
         {
-            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         }
     }
 }

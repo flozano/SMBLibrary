@@ -137,10 +137,10 @@ namespace SMBLibrary.Authentication.NTLM
 
         public static Encoding GetOEMEncoding()
         {
-#if NETSTANDARD2_0
-            return ASCIIEncoding.GetEncoding(28591);
-#else
+#if NETFRAMEWORK
             return Encoding.GetEncoding(CultureInfo.CurrentCulture.TextInfo.OEMCodePage);
+#else
+            return ASCIIEncoding.GetEncoding(28591);
 #endif
         }
 
