@@ -12,7 +12,7 @@ namespace Utilities
 {
     public class SocketUtils
     {
-#if !NETFRAMEWORK
+#if NETSTANDARD2_0_OR_GREATER || NET5_0_OR_GREATER
         private static bool IsDotNetFramework()
         {
             const string DotnetFrameworkDescription = ".NET Framework";

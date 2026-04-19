@@ -80,15 +80,15 @@ namespace SMBLibrary.Authentication.NTLM
             ICryptoTransform transform;
             if (DES.IsWeakKey(rgbKey) || DES.IsSemiWeakKey(rgbKey))
             {
-#if NETFRAMEWORK
+#if NETSTANDARD2_0_OR_GREATER || NET5_0_OR_GREATER
+                MethodInfo getTransformCoreMethodInfo = des.GetType().GetMethod("CreateTransformCore", BindingFlags.NonPublic | BindingFlags.Static);
+                object[] getTransformCoreParameters = { mode, des.Padding, rgbKey, rgbIV, des.BlockSize / 8 , des.FeedbackSize / 8,  des.BlockSize / 8, true };
+                transform = getTransformCoreMethodInfo.Invoke(null, getTransformCoreParameters) as ICryptoTransform;
+#else
                 DESCryptoServiceProvider desServiceProvider = des as DESCryptoServiceProvider;
                 MethodInfo newEncryptorMethodInfo = desServiceProvider.GetType().GetMethod("_NewEncryptor", BindingFlags.NonPublic | BindingFlags.Instance);
                 object[] encryptorParameters = { rgbKey, mode, rgbIV, desServiceProvider.FeedbackSize, 0 };
                 transform = newEncryptorMethodInfo.Invoke(desServiceProvider, encryptorParameters) as ICryptoTransform;
-#else
-                MethodInfo getTransformCoreMethodInfo = des.GetType().GetMethod("CreateTransformCore", BindingFlags.NonPublic | BindingFlags.Static);
-                object[] getTransformCoreParameters = { mode, des.Padding, rgbKey, rgbIV, des.BlockSize / 8 , des.FeedbackSize / 8,  des.BlockSize / 8, true };
-                transform = getTransformCoreMethodInfo.Invoke(null, getTransformCoreParameters) as ICryptoTransform;
 #endif
             }
             else
@@ -137,10 +137,10 @@ namespace SMBLibrary.Authentication.NTLM
 
         public static Encoding GetOEMEncoding()
         {
-#if NETFRAMEWORK
-            return Encoding.GetEncoding(CultureInfo.CurrentCulture.TextInfo.OEMCodePage);
-#else
+#if NETSTANDARD2_0_OR_GREATER || NET5_0_OR_GREATER
             return ASCIIEncoding.GetEncoding(28591);
+#else
+            return Encoding.GetEncoding(CultureInfo.CurrentCulture.TextInfo.OEMCodePage);
 #endif
         }
 
