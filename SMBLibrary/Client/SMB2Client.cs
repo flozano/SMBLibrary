@@ -32,6 +32,7 @@ namespace SMBLibrary.Client
         private SMBTransportType m_transport;
         private bool m_isConnected;
         private bool m_isLoggedIn;
+        private bool m_isGuestSession;
         private Socket m_clientSocket;
         private ConnectionState m_connectionState;
         private int m_responseTimeoutInMilliseconds;
@@ -338,6 +339,7 @@ namespace SMBLibrary.Client
                     m_sessionID = response.Header.SessionID;
                     m_sessionKey = authenticationClient.GetSessionKey();
                     SessionFlags sessionFlags = finalSessionSetupResponse.SessionFlags;
+                    m_isGuestSession = (sessionFlags & SessionFlags.IsGuest) > 0;
                     if ((sessionFlags & SessionFlags.IsGuest) > 0)
                     {
                         // [MS-SMB2] 3.2.5.3.1 If the SMB2_SESSION_FLAG_IS_GUEST bit is set in the SessionFlags field of the SMB2
@@ -378,6 +380,10 @@ namespace SMBLibrary.Client
             if (response != null)
             {
                 m_isLoggedIn = (response.Header.Status != NTStatus.STATUS_SUCCESS);
+                if (!m_isLoggedIn)
+                {
+                    m_isGuestSession = false;
+                }
                 return response.Header.Status;
             }
             return NTStatus.STATUS_INVALID_SMB;
@@ -806,6 +812,21 @@ namespace SMBLibrary.Client
             get
             {
                 return m_isConnected;
+            }
+        }
+
+        /// <summary>
+        /// True when the server accepted the session only as a GUEST (SMB2_SESSION_FLAG_IS_GUEST in
+        /// the SESSION_SETUP response, [MS-SMB2] 3.2.5.3.1). Guest-fallback servers (e.g. Samba with
+        /// 'map to guest') report success for invalid credentials and downgrade the session instead;
+        /// callers that supplied real credentials can use this to detect the rejection at login time
+        /// rather than as an ACCESS_DENIED on the first share operation.
+        /// </summary>
+        public bool IsGuestSession
+        {
+            get
+            {
+                return m_isGuestSession;
             }
         }
 
