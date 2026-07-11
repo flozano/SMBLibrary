@@ -3,7 +3,7 @@
   <PropertyGroup>
     <PackageId>Flozano.SMBLibrary</PackageId>
     <AssemblyName>SMBLibrary</AssemblyName>
-    <Version>101.5.7</Version>
+    <Version>101.5.8</Version>
     <NoWarn>1573;1591</NoWarn>
     <RootNamespace>SMBLibrary</RootNamespace>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
