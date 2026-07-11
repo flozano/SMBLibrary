@@ -310,7 +310,7 @@ namespace SMBLibrary.Client
             request.SecurityMode = SecurityMode.SigningEnabled;
             request.SecurityBuffer = negotiateMessage;
             TrySendCommand(request);
-            SMB2Command response = WaitForCommand(request.MessageID);
+            SMB2Command response = WaitForCommand(request.MessageID, out bool connectionTerminated);
             while (response is SessionSetupResponse sessionSetupResponse && response.Header.Status == NTStatus.STATUS_MORE_PROCESSING_REQUIRED)
             {
                 byte[] authenticateMessage = authenticationClient.InitializeSecurityContext(sessionSetupResponse.SecurityBuffer);
@@ -324,7 +324,14 @@ namespace SMBLibrary.Client
                 request.SecurityMode = SecurityMode.SigningEnabled;
                 request.SecurityBuffer = authenticateMessage;
                 TrySendCommand(request);
-                response = WaitForCommand(request.MessageID);
+                response = WaitForCommand(request.MessageID, out connectionTerminated);
+            }
+
+            // A null response is a transport-level outcome, not a protocol violation: report a
+            // timed-out wait as such (same convention as SMB2FileStore) instead of blaming the SMB.
+            if (response == null)
+            {
+                return connectionTerminated ? NTStatus.STATUS_INVALID_SMB : NTStatus.STATUS_IO_TIMEOUT;
             }
 
             if (response is ErrorResponse)
@@ -376,7 +383,7 @@ namespace SMBLibrary.Client
             LogoffRequest request = new LogoffRequest();
             TrySendCommand(request);
 
-            SMB2Command response = WaitForCommand(request.MessageID);
+            SMB2Command response = WaitForCommand(request.MessageID, out bool connectionTerminated);
             if (response != null)
             {
                 m_isLoggedIn = (response.Header.Status != NTStatus.STATUS_SUCCESS);
@@ -386,7 +393,7 @@ namespace SMBLibrary.Client
                 }
                 return response.Header.Status;
             }
-            return NTStatus.STATUS_INVALID_SMB;
+            return connectionTerminated ? NTStatus.STATUS_INVALID_SMB : NTStatus.STATUS_IO_TIMEOUT;
         }
 
         public List<string> ListShares(out NTStatus status)
@@ -418,7 +425,7 @@ namespace SMBLibrary.Client
             TreeConnectRequest request = new TreeConnectRequest();
             request.Path = sharePath;
             TrySendCommand(request);
-            SMB2Command response = WaitForCommand(request.MessageID);
+            SMB2Command response = WaitForCommand(request.MessageID, out bool connectionTerminated);
             if (response != null)
             {
                 status = response.Header.Status;
@@ -430,7 +437,7 @@ namespace SMBLibrary.Client
             }
             else
             {
-                status = NTStatus.STATUS_INVALID_SMB;
+                status = connectionTerminated ? NTStatus.STATUS_INVALID_SMB : NTStatus.STATUS_IO_TIMEOUT;
             }
             return null;
         }
@@ -439,14 +446,14 @@ namespace SMBLibrary.Client
         {
             EchoRequest request = new EchoRequest();
             TrySendCommand(request);
-            SMB2Command response = WaitForCommand(request.MessageID);
+            SMB2Command response = WaitForCommand(request.MessageID, out bool connectionTerminated);
             if (response != null)
             {
                 return response.Header.Status;
             }
             else
             {
-                return NTStatus.STATUS_INVALID_SMB;
+                return connectionTerminated ? NTStatus.STATUS_INVALID_SMB : NTStatus.STATUS_IO_TIMEOUT;
             }
         }
 
